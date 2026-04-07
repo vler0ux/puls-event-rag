@@ -1,0 +1,42 @@
+[
+  {
+    "question": "Quels concerts ont lieu à Grenoble en juin ?",
+    "reference": "En juin 2025, plusieurs concerts ont lieu à Grenoble dont la Fête de la Musique le 21 juin avec des événements comme Musique amplifié en plein air sur la Place Grenette et Michel Musique fête la musique."
+  },
+  {
+    "question": "Quels spectacles sont proposés pour les enfants à Grenoble ?",
+    "reference": "Plusieurs événements sont proposés pour les enfants à Grenoble, notamment Petits yeux grands curieux à la Bibliothèque d'étude et du patrimoine, et Lumière ! Atelier scientifique 3-6 ans à la Bibliothèque Colombine."
+  },
+  {
+    "question": "Y a-t-il des expositions d'art à Grenoble ?",
+    "reference": "Oui, plusieurs expositions ont lieu à Grenoble, notamment De béton et de lumière et m² [dé]construit."
+  },
+  {
+    "question": "Quels événements gratuits ont lieu à Grenoble ?",
+    "reference": "Plusieurs événements gratuits sont disponibles à Grenoble, dont des ateliers en bibliothèque et des événements en plein air comme la Fête de la Musique."
+  },
+  {
+    "question": "Quels festivals se déroulent dans la région de Grenoble ?",
+    "reference": "La région de Grenoble accueille plusieurs festivals culturels au cours de l'année, notamment des festivals de musique et des événements artistiques."
+  },
+  {
+    "question": "Y a-t-il des événements culturels à Échirolles ?",
+    "reference": "Oui, Échirolles propose des événements culturels accessibles aux habitants de la métropole grenobloise."
+  },
+  {
+    "question": "Quelles expositions sur l'architecture peut-on voir à Grenoble ?",
+    "reference": "La Maison de l'Architecture de l'Isère propose régulièrement des expositions et des Cafés d'Archi sur des thèmes liés à l'architecture et à l'urbanisme à Grenoble."
+  },
+  {
+    "question": "Quels ateliers scientifiques sont proposés à Grenoble ?",
+    "reference": "Des ateliers scientifiques sont proposés notamment à la Bibliothèque Colombine avec l'atelier Lumière pour les 3-6 ans, et au Muséum de Grenoble avec des ateliers sensoriels."
+  },
+  {
+    "question": "Quels événements ont lieu au mois de mai à Grenoble ?",
+    "reference": "En mai 2025, plusieurs événements ont lieu à Grenoble notamment Quelle graine ! au Muséum de Grenoble le 17 mai, et des animations médiévales."
+  },
+  {
+    "question": "Y a-t-il des spectacles de danse à Grenoble ?",
+    "reference": "Grenoble propose des spectacles de danse dans ses salles culturelles tout au long de l'année."
+  }
+]
