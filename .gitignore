@@ -1,0 +1,13 @@
+# Environnement
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# Données et index (potentiellement lourds)
+data/raw/
+index/
+
+# IDE
+.vscode/
+.idea/
