@@ -7,6 +7,7 @@ import os
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from rag.chain import ask, build_rag_chain
@@ -116,3 +117,75 @@ def rebuild_index():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur rebuild : {str(e)}")
+    
+    from fastapi.responses import HTMLResponse
+
+@app.get("/chat", response_class=HTMLResponse, tags=["UI"])
+def chat_ui():
+    """Interface de démo du chatbot."""
+    return """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Puls-Events Chatbot</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        #chat { background: white; border-radius: 8px; padding: 20px; min-height: 300px; margin-bottom: 16px; overflow-y: auto; max-height: 500px; }
+        .msg { margin: 10px 0; }
+        .user { text-align: right; }
+        .user span { background: #4a90d9; color: white; padding: 8px 14px; border-radius: 16px; display: inline-block; }
+        .bot span { background: #e0e0e0; padding: 8px 14px; border-radius: 16px; display: inline-block; white-space: pre-wrap; }
+        #input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+        button { padding: 10px 20px; background: #4a90d9; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        button:disabled { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <h1>🎭 Puls-Events Chatbot</h1>
+    <p>Pose une question sur les événements culturels de Grenoble !</p>
+    <div id="chat"></div>
+    <div id="input-area">
+        <input id="question" type="text" placeholder="Ex: Quels concerts ce week-end ?" autofocus />
+        <button id="send" onclick="sendMessage()">Envoyer</button>
+    </div>
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById("question");
+            const q = input.value.trim();
+            if (!q) return;
+            const chat = document.getElementById("chat");
+            const btn = document.getElementById("send");
+
+            chat.innerHTML += `<div class="msg user"><span>${q}</span></div>`;
+            input.value = "";
+            btn.disabled = true;
+            chat.innerHTML += `<div class="msg bot" id="thinking"><span>⏳ Recherche en cours...</span></div>`;
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: q })
+                });
+                const data = await res.json();
+                document.getElementById("thinking").remove();
+                chat.innerHTML += `<div class="msg bot"><span>${data.answer}</span></div>`;
+            } catch (e) {
+                document.getElementById("thinking").remove();
+                chat.innerHTML += `<div class="msg bot"><span>❌ Erreur : ${e.message}</span></div>`;
+            }
+            btn.disabled = false;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        document.getElementById("question").addEventListener("keydown", e => {
+            if (e.key === "Enter") sendMessage();
+        });
+    </script>
+</body>
+</html>
+"""
