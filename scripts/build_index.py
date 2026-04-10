@@ -21,6 +21,12 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 INPUT_CSV  = Path("data/processed/events_clean.csv")
 OUTPUT_DIR = Path("index/faiss_index")
 
+def clean_field(value, default=""):
+    """Nettoie un champ : NaN pandas → valeur par défaut."""
+    if pd.isna(value) or str(value).strip().lower() == "nan":
+        return default
+    return str(value).strip()
+
 
 def load_documents(csv_path: Path) -> list[Document]:
     """Charge le CSV et construit des Documents LangChain avec métadonnées."""
@@ -31,22 +37,22 @@ def load_documents(csv_path: Path) -> list[Document]:
     for _, row in df.iterrows():
         # Texte principal : titre + description (enrichi pour le RAG)
         content = (
-            f"Titre : {row['title']}\n"
-            f"Lieu : {row.get('place', '')} — {row.get('city', '')}\n"
+            f"Titre : {clean_field(row.get('title'))}\n"
+            f"Lieu : {clean_field(row.get('place'))} — {clean_field(row.get('city'))}\n"
             f"Date : {row.get('date_start', '')[:10] if pd.notna(row.get('date_start')) else 'Non précisée'}\n"
-            f"Description : {row['description']}\n"
-            f"Tags : {row.get('tags', '')}"
-        )
+            f"Description : {clean_field(row.get('description'))}\n"
+            f"Tags : {clean_field(row.get('tags'))}"
+    )
 
         metadata = {
-            "id":         str(row.get("id", "")),
-            "title":      str(row.get("title", "")),
-            "city":       str(row.get("city", "")),
-            "place":      str(row.get("place", "")),
-            "date_start": str(row.get("date_start", ""))[:10],
-            "date_end":   str(row.get("date_end", ""))[:10],
-            "url":        str(row.get("url", "")),
-            "tags":       str(row.get("tags", "")),
+            "id":         clean_field(row.get("id")),
+            "title":      clean_field(row.get("title")),
+            "city":       clean_field(row.get("city")),
+            "place":      clean_field(row.get("place")),
+            "date_start": str(row.get("date_start", ""))[:10] if pd.notna(row.get("date_start")) else "",
+            "date_end":   str(row.get("date_end", ""))[:10] if pd.notna(row.get("date_end")) else "",
+            "url":        clean_field(row.get("url")),
+            "tags":       clean_field(row.get("tags")),
         }
 
         documents.append(Document(page_content=content, metadata=metadata))

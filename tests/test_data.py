@@ -38,3 +38,19 @@ def test_grenoble_region():
     cities = df["city"].str.lower().unique()
     # On vérifie juste qu'il y a des villes renseignées
     assert len(cities) > 0, "Aucune ville trouvée dans les données."
+    
+def test_critical_fields_not_empty():
+    """Les champs vectorisés critiques ne doivent pas être vides."""
+    df = pd.read_csv("data/processed/events_clean.csv")
+    
+    critical = ["title", "description"]
+    for col in critical:
+        empty = df[col].isna().sum() + (df[col] == "").sum()
+        assert empty == 0, f"{empty} valeurs manquantes dans '{col}' — impact direct sur les vecteurs"
+
+def test_localisation_not_empty():
+    """Au moins city ou place doit être renseigné pour le retrieval géographique."""
+    df = pd.read_csv("data/processed/events_clean.csv")
+    
+    missing_both = df[df["city"].isna() & df["place"].isna()]
+    assert len(missing_both) == 0, f"{len(missing_both)} événements sans localisation (city ET place vides)"

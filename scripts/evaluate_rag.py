@@ -4,12 +4,24 @@ evaluate_rag.py
 """
 
 import os
+import time
 import json
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pathlib import Path
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+import httpx
+
+@retry(
+    retry=retry_if_exception_type(httpx.HTTPStatusError),
+    wait=wait_exponential(multiplier=2, min=4, max=60),
+    stop=stop_after_attempt(5)
+)
+def invoke_with_retry(chain, question):
+    return chain.invoke(question)
+
+
 from dotenv import load_dotenv
 
 from datasets import Dataset
@@ -46,7 +58,8 @@ def build_ragas_dataset() -> Dataset:
         print(f"  [{i+1}/{len(qa_pairs)}] {q}")
 
         # Réponse générée
-        answer = chain.invoke(q)
+        answer = invoke_with_retry(chain, q)
+        time.sleep(2) 
 
         # Contextes récupérés
         docs = retriever.invoke(q)
@@ -85,14 +98,14 @@ def main():
 
     results = evaluate(
         dataset=dataset,
-        metrics=[faithfulness, answer_relevancy, context_precision],
+        metrics=[faithfulness,answer_relevancy,context_precision],
         llm=llm,
         embeddings=embeddings,
     )
 
     print("\n=== Résultats ===")
     scores = results.to_pandas()[
-        ["faithfulness", "answer_relevancy", "context_precision"]
+        ["faithfulness","answer_relevancy","context_precision"]
     ].mean()
 
     for metric, score in scores.items():

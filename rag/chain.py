@@ -60,7 +60,8 @@ def build_rag_chain():
 
     llm = ChatMistralAI(
         api_key=os.getenv("MISTRAL_API_KEY"),
-        model="mistral-small-latest",
+        model="open-mistral-7b",
+       # model="mistral-small-latest",
         temperature=0.3,
     )
 
@@ -83,7 +84,10 @@ def ask(question: str) -> dict:
     Retourne la réponse et les sources utilisées.
     """
     vectorstore = load_vectorstore()
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+    retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 6, "fetch_k": 20}
+)
 
     # Récupère les sources pour les retourner avec la réponse
     docs = retriever.invoke(question)

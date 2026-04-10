@@ -51,7 +51,7 @@ LangChain RAG Chain
 
 ```
 puls-events-rag/
-├── .env.example            # Modèle de configuration (jamais versionné : .env)
+├── .env          # Modèle de configuration (jamais versionné : .env)
 ├── .gitignore
 ├── README.md
 ├── pyproject.toml          # Dépendances (uv)

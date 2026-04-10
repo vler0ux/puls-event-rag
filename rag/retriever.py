@@ -41,5 +41,5 @@ def retrieve(query: str, k: int = 4) -> list:
     Retourne une liste de Documents LangChain avec métadonnées.
     """
     vectorstore = load_vectorstore()
-    results = vectorstore.similarity_search(query, k=k)
+    results = vectorstore.max_marginal_relevance_search(query, k=6, fetch_k=20)
     return results
