@@ -20,7 +20,7 @@ def test_csv_not_empty():
 def test_required_columns():
     """Les colonnes obligatoires pour le RAG doivent être présentes."""
     df = pd.read_csv("data/processed/events_clean.csv")
-    required = {"id", "title", "description", "city", "date"}
+    required = {"id", "title", "description", "city", "date_start"}
     missing = required - set(df.columns)
     assert not missing, f"Colonnes manquantes : {missing}"
 

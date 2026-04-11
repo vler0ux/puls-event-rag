@@ -62,13 +62,35 @@ def load_documents(csv_path: Path) -> list[Document]:
 
 def split_documents(documents: list[Document]) -> list[Document]:
     """Découpe les documents longs en chunks."""
+    
+    # 1. Garde-fou : liste vide
+    if not documents:
+        print("⚠️  Aucun document fourni, retour d'une liste vide.")
+        return []
+
+    # 2. Filtrage des documents vides (texte None ou blanc)
+    documents_valides = [
+        doc for doc in documents
+        if doc.page_content and doc.page_content.strip()
+    ]
+    
+    ignores = len(documents) - len(documents_valides)
+    if ignores > 0:
+        print(f"⚠️  {ignores} document(s) vide(s) ignoré(s)")
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=512,
         chunk_overlap=64,
-        separators=["\n\n", "\n", ".", " "],
+        # 3. Séparateurs plus complets pour le français
+        separators=["\n\n", "\n", ". ", "! ", "? ", ", ", " ", ""],
     )
-    chunks = splitter.split_documents(documents)
-    print(f"✂️  {len(documents)} documents → {len(chunks)} chunks")
+    
+    chunks = splitter.split_documents(documents_valides)
+    
+    # 4. Filtrage des chunks vides produits par le splitter
+    chunks = [c for c in chunks if c.page_content.strip()]
+    
+    print(f"✂️  {len(documents_valides)} documents → {len(chunks)} chunks")
     return chunks
 
 

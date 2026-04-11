@@ -8,31 +8,39 @@ from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 
-from rag.retriever import load_vectorstore
+from rag.retriever import retrieve
 
 load_dotenv()
 
-# --- Prompt système ---
+CUTOFF_DATE = "2025-12-31"
+
+# --- Prompt ---
 SYSTEM_PROMPT = """Tu es un assistant culturel spécialisé dans les événements \
 de la région de Grenoble. Tu aides les utilisateurs à trouver des événements \
 culturels (concerts, expositions, spectacles, festivals, etc.) en t'appuyant \
 uniquement sur les informations fournies dans le contexte ci-dessous.
 
-Règles :
-- Réponds toujours en français, de manière chaleureuse et enthousiaste.
-- Cite le titre, le lieu, la date et l'URL de chaque événement recommandé.
-- Si le contexte ne contient pas d'événement pertinent, dis-le honnêtement.
-- Ne génère jamais d'événements fictifs.
+RÈGLE ABSOLUE : Tu ne dois mentionner QUE les événements explicitement présents \
+dans le contexte fourni. N'invente jamais un titre, un lieu, une date ou une URL. \
+Si le contexte ne contient pas de réponse pertinente, dis-le clairement.
 
-Contexte :
+Pour chaque événement cité, indique :
+- Le titre exact
+- Le lieu
+- La date
+- L'URL (si disponible dans le contexte)
+
+Réponds en français, de manière chaleureuse et utile."""
+
+HUMAN_PROMPT = """Contexte :
 {context}
-"""
+
+Question : {question}"""
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
-    ("human", "{question}"),
+    ("human", HUMAN_PROMPT),
 ])
 
 
@@ -53,49 +61,26 @@ def format_docs(docs) -> str:
     return "\n".join(formatted)
 
 
-def build_rag_chain():
-    """Construit et retourne la chaîne RAG LangChain."""
-    vectorstore = load_vectorstore()
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
-
-    llm = ChatMistralAI(
-        api_key=os.getenv("MISTRAL_API_KEY"),
-        model="open-mistral-7b",
-       # model="mistral-small-latest",
-        temperature=0.3,
-    )
-
-    chain = (
-        {
-            "context": retriever | format_docs,
-            "question": RunnablePassthrough(),
-        }
-        | PROMPT
-        | llm
-        | StrOutputParser()
-    )
-
-    return chain
-
-
 def ask(question: str) -> dict:
     """
     Pose une question au système RAG.
     Retourne la réponse et les sources utilisées.
     """
-    vectorstore = load_vectorstore()
-    retriever = vectorstore.as_retriever(
-    search_type="mmr",
-    search_kwargs={"k": 6, "fetch_k": 20}
-)
+    # 1. Retrieval — MMR + filtre de date, une seule fois
+    docs = retrieve(question, k=6, max_date=CUTOFF_DATE)
+    context_text = format_docs(docs)
 
-    # Récupère les sources pour les retourner avec la réponse
-    docs = retriever.invoke(question)
+    # 2. Génération — on passe le contexte directement, pas de retrieval interne
+    llm = ChatMistralAI(
+        api_key=os.getenv("MISTRAL_API_KEY"),
+        model="mistral-small-latest",
+        temperature=0.3,
+    )
 
-    # Génère la réponse
-    chain = build_rag_chain()
-    answer = chain.invoke(question)
+    chain = PROMPT | llm | StrOutputParser()
+    answer = chain.invoke({"context": context_text, "question": question})
 
+    # 3. Sources extraites des mêmes docs que la réponse
     sources = [
         {
             "title": doc.metadata.get("title", ""),
@@ -109,5 +94,6 @@ def ask(question: str) -> dict:
     return {
         "question": question,
         "answer":   answer,
+        "context":  context_text,
         "sources":  sources,
     }

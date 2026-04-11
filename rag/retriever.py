@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_community.vectorstores import FAISS
+from datetime import date
 
 load_dotenv()
 
@@ -35,11 +36,21 @@ def load_vectorstore() -> FAISS:
     return vectorstore
 
 
-def retrieve(query: str, k: int = 4) -> list:
+
+def retrieve(query: str, k: int = 6, max_date: str | None = None) -> list:
     """
     Recherche les k documents les plus proches sémantiquement de la query.
-    Retourne une liste de Documents LangChain avec métadonnées.
+    max_date : filtre optionnel au format 'YYYY-MM-DD' (ex: '2025-12-31')
     """
     vectorstore = load_vectorstore()
-    results = vectorstore.max_marginal_relevance_search(query, k=6, fetch_k=20)
-    return results
+
+    if max_date:
+        # On récupère plus de candidats pour compenser le filtre
+        candidates = vectorstore.similarity_search(query, k=k * 6)
+        results = [
+            doc for doc in candidates
+            if doc.metadata.get("date_start", "") <= max_date
+        ]
+        return results[:k]
+    
+    return vectorstore.similarity_search(query, k=k)

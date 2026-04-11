@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from rag.chain import ask, build_rag_chain
+from rag.chain import ask
 from scripts.build_index import load_documents, split_documents, build_faiss_index, save_index
 from pathlib import Path
 
@@ -35,11 +35,11 @@ rag_chain = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Charge la chaîne RAG au démarrage de l'API."""
-    global rag_chain
-    print("🚀 Chargement de la chaîne RAG...")
-    rag_chain = build_rag_chain()
-    print("✅ Chaîne RAG prête.")
+    """Vérifie que l'index FAISS est disponible au démarrage."""
+    print("🚀 Vérification de l'index FAISS...")
+    from rag.retriever import load_vectorstore
+    load_vectorstore()  # lève une erreur claire si l'index est absent
+    print("✅ Index FAISS prêt.")
     yield
     print("🛑 Arrêt de l'API.")
 
@@ -92,7 +92,6 @@ def rebuild_index():
     Reconstruit l'index vectoriel FAISS à partir des données collectées.
     À utiliser après une mise à jour des données OpenAgenda.
     """
-    global rag_chain
     try:
         csv_path = Path("data/processed/events_clean.csv")
         if not csv_path.exists():
@@ -100,15 +99,10 @@ def rebuild_index():
                 status_code=404,
                 detail="Données introuvables. Lance d'abord collect_data.py."
             )
-
         docs   = load_documents(csv_path)
         chunks = split_documents(docs)
         vs     = build_faiss_index(chunks)
         save_index(vs, Path("index/faiss_index"))
-
-        # Recharge la chaîne avec le nouvel index
-        rag_chain = build_rag_chain()
-
         return RebuildResponse(
             status="ok",
             message=f"Index reconstruit avec {len(chunks)} chunks."
@@ -117,8 +111,6 @@ def rebuild_index():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur rebuild : {str(e)}")
-    
-    from fastapi.responses import HTMLResponse
 
 @app.get("/chat", response_class=HTMLResponse, tags=["UI"])
 def chat_ui():

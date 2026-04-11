@@ -55,6 +55,7 @@ puls-events-rag/
 ├── .gitignore
 ├── README.md
 ├── pyproject.toml          # Dépendances (uv)
+├── rapport_technique.md
 ├── Dockerfile
 │
 ├── data/
@@ -65,6 +66,7 @@ puls-events-rag/
 │
 ├── scripts/
 │   ├── collect_data.py     # Collecte via API Opendatasoft
+│   ├── collect_check.py    
 │   ├── build_index.py      # Vectorisation + indexation FAISS
 │   └── evaluate_rag.py     # Évaluation automatique Ragas
 │
@@ -81,7 +83,7 @@ puls-events-rag/
 │   └── test_api.py         # Tests API REST
 │
 └── docs/
-    ├── rapport_technique.md
+    ├──  evaluation_resultsRagas.json
     └── qa_dataset.json     # Jeu de test annoté (questions / réponses de référence)
 ```
 
@@ -98,7 +100,7 @@ puls-events-rag/
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/TON_USERNAME/puls-events-rag.git
+git clone https://github.com/vler0ux/puls-events-rag.git
 cd puls-events-rag
 ```
 
@@ -211,7 +213,7 @@ Le système est évalué avec **Ragas** sur un jeu de 20 questions/réponses ann
 uv run python scripts/evaluate_rag.py
 ```
 
-Métriques mesurées : faithfulness, answer relevancy, context precision.
+Métriques mesurées : faithfulness, context precision.
 
 ---
 

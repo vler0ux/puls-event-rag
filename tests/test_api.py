@@ -2,6 +2,11 @@
 test_api.py
 Tests unitaires pour l'API FastAPI Puls-Events.
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from api.main import app  # cet import fonctionne maintenant
 
 import pytest
 from fastapi.testclient import TestClient
