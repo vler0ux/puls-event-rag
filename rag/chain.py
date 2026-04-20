@@ -75,6 +75,8 @@ def ask(question: str) -> dict:
         api_key=os.getenv("MISTRAL_API_KEY"),
         model="mistral-small-latest",
         temperature=0.3,
+        top_p=0.9,
+        max_tokens=300,
     )
 
     chain = PROMPT | llm | StrOutputParser()

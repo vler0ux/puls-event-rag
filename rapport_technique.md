@@ -190,6 +190,8 @@ Résultats plus faibles sur les questions hors périmètre ou peu représentées
 - Passer à ChromaDB en remplacement de FAISS (mises à jour incrémentales)
 - Utiliser une interface Streamlit enrichie
 - Filtres géographiques et thématiques
+- Fine-tuning du modèle d'embedding
+- L'intégration d'un système de feedback utilisateur
 - Déploiement cloud (Railway / Fly.io)
 - Mise en place d'un workflow CI/CD : tests automatisés + build Docker + déploiement.
 - Profil utilisateur et personnalisation
