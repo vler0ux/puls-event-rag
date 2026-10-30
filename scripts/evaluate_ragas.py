@@ -71,7 +71,7 @@ def main():
 
     dataset = Dataset.from_dict(data)
 
-    llm        = LangchainLLMWrapper(ChatMistralAI(model="mistral-small-latest"))
+    llm        = LangchainLLMWrapper(ChatMistralAI(model="ministral-8b-2512"))
     embeddings = LangchainEmbeddingsWrapper(MistralAIEmbeddings(model="mistral-embed"))
 
     print("\n🔍 Calcul des métriques Ragas...")
@@ -80,7 +80,8 @@ def main():
         metrics=[faithfulness, context_precision],
         llm=llm,
         embeddings=embeddings,
-        run_config=RunConfig(max_workers=1, timeout=120),
+        run_config=RunConfig(max_workers=1, timeout=120, max_retries=1),
+        raise_exceptions=True,
     )
 
     # EvaluationResult n'est pas un dict — conversion via to_pandas()

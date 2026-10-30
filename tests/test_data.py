@@ -54,3 +54,9 @@ def test_localisation_not_empty():
     
     missing_both = df[df["city"].isna() & df["place"].isna()]
     assert len(missing_both) == 0, f"{len(missing_both)} événements sans localisation (city ET place vides)"
+
+def test_description_min_words():
+    df = pd.read_csv("data/processed/events_clean.csv")
+    min_words = df['description'].str.split().str.len()
+    assert (min_words >= 5).all(), \
+        f"{(min_words < 5).sum()} descriptions de moins de 5 mots détectées"

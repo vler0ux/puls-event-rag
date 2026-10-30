@@ -89,6 +89,9 @@ def clean_events(raw_records: list[dict]) -> pd.DataFrame:
         )
         if not description.strip():
             continue
+        
+        if len(description.strip().split()) < 5:
+            continue
 
         # Dans clean_events, remplace le bloc records.append par :
         keywords = rec.get("keywords_fr", [])

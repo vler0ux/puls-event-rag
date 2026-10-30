@@ -11,3 +11,8 @@ index/
 # IDE
 .vscode/
 .idea/
+# Tests
+.pytest_cache/
+
+# Retours utilisateurs (données collectées en production)
+data/feedback.jsonl

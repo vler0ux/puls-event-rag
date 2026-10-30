@@ -4,6 +4,11 @@ API REST FastAPI exposant le système RAG Puls-Events.
 """
 
 import os
+import time
+
+import json
+from datetime import datetime
+
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -28,6 +33,11 @@ class QuestionResponse(BaseModel):
 class RebuildResponse(BaseModel):
     status: str
     message: str
+    
+class FeedbackRequest(BaseModel):
+    question: str
+    answer: str
+    rating: int  # 1 = 👍, -1 = 👎
 
 
 # --- Chargement au démarrage ---
@@ -51,7 +61,7 @@ app = FastAPI(
         "API de recommandations d'événements culturels pour Grenoble / Isère. "
         "Basée sur un système RAG (FAISS + Mistral AI)."
     ),
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -80,9 +90,19 @@ def ask_question(request: QuestionRequest):
         raise HTTPException(status_code=400, detail="La question ne peut pas être vide.")
 
     try:
-        result = ask(request.question)
+        for attempt in range(3):
+            try:
+                result = ask(request.question)
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                raise
         return QuestionResponse(**result)
     except Exception as e:
+        if "429" in str(e):
+            raise HTTPException(status_code=503, detail="Le service est très sollicité en ce moment. Réessaie dans quelques secondes.")
         raise HTTPException(status_code=500, detail=f"Erreur RAG : {str(e)}")
 
 
@@ -111,6 +131,19 @@ def rebuild_index():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur rebuild : {str(e)}")
+    
+FEEDBACK_PATH = Path("data/feedback.jsonl")
+
+@app.post("/feedback", tags=["Feedback"])
+def feedback(request: FeedbackRequest):
+    """Enregistre l'avis de l'utilisateur sur une réponse."""
+    if request.rating not in (1, -1):
+        raise HTTPException(status_code=400, detail="rating doit valoir 1 ou -1.")
+    FEEDBACK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    entry = {"timestamp": datetime.now().isoformat(), **request.model_dump()}
+    with FEEDBACK_PATH.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return {"status": "ok"}
 
 @app.get("/chat", response_class=HTMLResponse, tags=["UI"])
 def chat_ui():
@@ -133,17 +166,76 @@ def chat_ui():
         input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
         button { padding: 10px 20px; background: #4a90d9; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
         button:disabled { opacity: 0.5; }
+        .sources { margin-top: 6px; font-size: 13px; color: #555; }
+        .sources a { color: #4a90d9; }
+        #examples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .ex { background: white; color: #4a90d9; border: 1px solid #4a90d9; font-size: 14px; padding: 6px 12px; }
+        .feedback { margin-top: 4px; }
+        .feedback button { background: none; color: inherit; border: none; padding: 2px 6px; font-size: 16px; cursor: pointer; }
+        .feedback .thanks { font-size: 12px; color: #888; }
     </style>
 </head>
 <body>
     <h1>🎭 Puls-Events Chatbot</h1>
     <p>Pose une question sur les événements culturels de Grenoble !</p>
+    <div id="examples">
+        <button class="ex" onclick="askExample(this)">Des concerts de jazz prévus ?</button>
+        <button class="ex" onclick="askExample(this)">Une exposition à voir à Grenoble ?</button>
+        <button class="ex" onclick="askExample(this)">Une sortie en famille avec des enfants ?</button>
+    </div>
     <div id="chat"></div>
     <div id="input-area">
         <input id="question" type="text" placeholder="Ex: Quels concerts ce week-end ?" autofocus />
         <button id="send" onclick="sendMessage()">Envoyer</button>
     </div>
     <script>
+        function askExample(btn) {
+            document.getElementById("question").value = btn.textContent;
+            sendMessage();
+        }
+                function escapeHtml(s) {
+            return String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+        }
+
+        function renderSources(sources) {
+            if (!sources || sources.length === 0) return "";
+            const seen = new Set();
+            const items = sources.filter(s => {
+                const key = s.url || s.title || s.titre;
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            }).map(s => {
+                const titre = escapeHtml(s.title || s.titre || "Événement");
+                const infos = escapeHtml([s.date || s.dates, s.location || s.lieu].filter(Boolean).join(" · "));
+                const url = s.url || "";
+                const safeUrl = (url.startsWith("https://") || url.startsWith("http://")) ? escapeHtml(url) : "";
+                const lien = safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener">${titre}</a>` : titre;
+                return `<li>${lien}${infos ? " — " + infos : ""}</li>`;
+            });
+            return `<div class="sources">📍 Sources :<ul>${items.join("")}</ul></div>`;
+        }
+
+        const exchanges = [];
+
+        function renderFeedback(idx) {
+            return `<div class="feedback"><button onclick="sendFeedback(${idx}, 1, this)">👍</button><button onclick="sendFeedback(${idx}, -1, this)">👎</button></div>`;
+        }
+
+        async function sendFeedback(idx, rating, el) {
+            const box = el.parentElement;
+            try {
+                await fetch("/feedback", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...exchanges[idx], rating })
+                });
+                box.innerHTML = `<span class="thanks">Merci pour ton retour !</span>`;
+            } catch (e) {
+                box.innerHTML = `<span class="thanks">Retour non envoyé.</span>`;
+            }
+        }
+
         async function sendMessage() {
             const input = document.getElementById("question");
             const q = input.value.trim();
@@ -151,7 +243,7 @@ def chat_ui():
             const chat = document.getElementById("chat");
             const btn = document.getElementById("send");
 
-            chat.innerHTML += `<div class="msg user"><span>${q}</span></div>`;
+            chat.innerHTML += `<div class="msg user"><span>${escapeHtml(q)}</span></div>`;
             input.value = "";
             btn.disabled = true;
             chat.innerHTML += `<div class="msg bot" id="thinking"><span>⏳ Recherche en cours...</span></div>`;
@@ -164,11 +256,14 @@ def chat_ui():
                     body: JSON.stringify({ question: q })
                 });
                 const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
                 document.getElementById("thinking").remove();
-                chat.innerHTML += `<div class="msg bot"><span>${data.answer}</span></div>`;
+                const noResult = data.answer.includes("pas trouvé d");
+                const idx = exchanges.push({ question: q, answer: data.answer }) - 1;
+                chat.innerHTML += `<div class="msg bot"><span>${escapeHtml(data.answer)}</span>${noResult ? "" : renderSources(data.sources)}${renderFeedback(idx)}</div>`;
             } catch (e) {
                 document.getElementById("thinking").remove();
-                chat.innerHTML += `<div class="msg bot"><span>❌ Erreur : ${e.message}</span></div>`;
+                chat.innerHTML += `<div class="msg bot"><span>❌ Erreur : ${escapeHtml(e.message)}</span></div>`;
             }
             btn.disabled = false;
             chat.scrollTop = chat.scrollHeight;

@@ -23,7 +23,9 @@ uniquement sur les informations fournies dans le contexte ci-dessous.
 
 RÈGLE ABSOLUE : Tu ne dois mentionner QUE les événements explicitement présents \
 dans le contexte fourni. N'invente jamais un titre, un lieu, une date ou une URL. \
-Si le contexte ne contient pas de réponse pertinente, dis-le clairement.
+Si le contexte ne contient pas de réponse pertinente, réponds : « Je n'ai pas \
+trouvé d'événement correspondant. Essaie d'élargir ta recherche (autre date, \
+autre type de sortie, autre commune).
 
 Pour chaque événement cité, indique :
 - Le titre exact
@@ -73,10 +75,10 @@ def ask(question: str) -> dict:
     # 2. Génération — on passe le contexte directement, pas de retrieval interne
     llm = ChatMistralAI(
         api_key=os.getenv("MISTRAL_API_KEY"),
-        model="mistral-small-latest",
+        model="ministral-8b-2512",
         temperature=0.3,
         top_p=0.9,
-        max_tokens=300,
+        max_tokens=1000,
     )
 
     chain = PROMPT | llm | StrOutputParser()
