@@ -1,0 +1,24 @@
+name: Tests
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Lancer les tests
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: uv run pytest -v

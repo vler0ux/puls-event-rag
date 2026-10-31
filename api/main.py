@@ -173,7 +173,13 @@ def chat_ui():
         .feedback { margin-top: 4px; }
         .feedback button { background: none; color: inherit; border: none; padding: 2px 6px; font-size: 16px; cursor: pointer; }
         .feedback .thanks { font-size: 12px; color: #888; }
+        .bot .md { background: #e0e0e0; padding: 8px 14px; border-radius: 16px; display: inline-block; max-width: 100%; }
+        .bot .md p { margin: 4px 0; }
+        .bot .md h3, .bot .md h4 { font-size: 15px; margin: 8px 0 4px; }
+        .bot .md ul, .bot .md ol { margin: 4px 0; padding-left: 20px; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 </head>
 <body>
     <h1>🎭 Puls-Events Chatbot</h1>
@@ -196,6 +202,12 @@ def chat_ui():
                 function escapeHtml(s) {
             return String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
         }
+                function renderMarkdown(text) {
+                    if (window.marked && window.DOMPurify) {
+                        return `<div class="md">${DOMPurify.sanitize(marked.parse(text))}</div>`;
+                    }
+                    return `<span>${escapeHtml(text)}</span>`;
+                }
 
         function renderSources(sources) {
             if (!sources || sources.length === 0) return "";
@@ -260,7 +272,7 @@ def chat_ui():
                 document.getElementById("thinking").remove();
                 const noResult = data.answer.includes("pas trouvé d");
                 const idx = exchanges.push({ question: q, answer: data.answer }) - 1;
-                chat.innerHTML += `<div class="msg bot"><span>${escapeHtml(data.answer)}</span>${noResult ? "" : renderSources(data.sources)}${renderFeedback(idx)}</div>`;
+                chat.innerHTML += `<div class="msg bot">${renderMarkdown(data.answer)}${noResult ? "" : renderSources(data.sources)}${renderFeedback(idx)}</div>`;
             } catch (e) {
                 document.getElementById("thinking").remove();
                 chat.innerHTML += `<div class="msg bot"><span>❌ Erreur : ${escapeHtml(e.message)}</span></div>`;

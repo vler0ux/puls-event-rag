@@ -33,7 +33,7 @@ Pour chaque événement cité, indique :
 - La date
 - L'URL (si disponible dans le contexte)
 
-Réponds en français, de manière chaleureuse et utile."""
+Réponds en français, en tutoyant l'utilisateur, de manière chaleureuse et utile."""
 
 HUMAN_PROMPT = """Contexte :
 {context}
